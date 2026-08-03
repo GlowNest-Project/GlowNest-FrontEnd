@@ -33,3 +33,48 @@ GlowNest is a modern full-stack e-commerce platform designed for selling perfume
 - Sequelize ORM
 
 ## Project Structure
+client/
+server/
+database/
+
+
+## Installation
+
+### Clone Repository
+
+git clone https://github.com/disnaka-induwara/GlowNest-Project.git
+
+Frontend
+
+cd client
+npm install
+npm run dev
+
+Backend
+
+cd server
+npm install
+npm run dev
+Environment Variables
+
+Create a .env file and configure:
+
+DB_HOST=
+DB_USER=
+DB_PASSWORD=
+DB_NAME=
+PORT=
+JWT_SECRET=
+
+Future Improvements
+
+Wishlist
+Product Reviews
+Email Notifications
+Admin Analytics Dashboard
+Discount Coupons
+Online Payment Integrations
+
+Author
+
+Disnaka Induwara
