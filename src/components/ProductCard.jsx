@@ -35,8 +35,13 @@ export default function ProductCard({ product, onAddToCart, revealIndex = 0 }) {
   const [isAdded, setIsAdded] = useState(false);
   const [isOptionPickerOpen, setIsOptionPickerOpen] = useState(false);
   const revealRef = useScrollReveal();
-  const detailPath =
-    product.category === "perfumes" && product.slug ? `/perfumes/${product.slug}` : null;
+  const detailPath = product.slug
+    ? product.category === "perfumes"
+      ? `/perfumes/${product.slug}`
+      : product.category === "cosmetics"
+        ? `/cosmetics/${product.slug}`
+        : null
+    : null;
   const hasDecantOption = Boolean(product.decant?.priceValue);
   const isInStock = product.isInStock !== false;
   const tunedPopImageStyle = product.popImage ? popImageStyle(product) : undefined;
@@ -58,6 +63,9 @@ export default function ProductCard({ product, onAddToCart, revealIndex = 0 }) {
       sessionStorage.setItem("glownestPerfumesScrollY", String(window.scrollY));
       sessionStorage.setItem("glownestPerfumesSelectedProduct", product.id || product.name);
     }
+    if (product.category === "cosmetics") {
+      sessionStorage.setItem("glownestCosmeticsScrollY", String(window.scrollY));
+    }
 
     navigateTo(detailPath);
   }
@@ -73,6 +81,17 @@ export default function ProductCard({ product, onAddToCart, revealIndex = 0 }) {
         priceValue: decantPricing.priceValue,
         originalPriceValue: decantPricing.originalPrice,
         option: "decant",
+      };
+    }
+
+    if (product.category === "cosmetics") {
+      return {
+        ...product,
+        id: `${product.id || product.slug || product.name}-product`,
+        name: product.name,
+        priceValue: fullBottlePricing.priceValue,
+        originalPriceValue: fullBottlePricing.originalPrice,
+        option: "full",
       };
     }
 

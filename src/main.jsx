@@ -7,6 +7,7 @@ import AccountPage from "./pages/AccountPage";
 import AdminLoginPage from "./pages/AdminLoginPage";
 import AdminPage from "./pages/AdminPage";
 import CartPage from "./pages/CartPage";
+import CosmeticDetailPage from "./pages/CosmeticDetailPage";
 import CosmeticsPage from "./pages/CosmeticsPage";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
@@ -27,7 +28,13 @@ import {
 } from "./utils/auth";
 import "./styles.css";
 
-const PUBLIC_PATH_PATTERNS = [/^\/$/, /^\/perfumes$/, /^\/perfumes\/[^/]+$/, /^\/cosmetics$/];
+const PUBLIC_PATH_PATTERNS = [
+  /^\/$/,
+  /^\/perfumes$/,
+  /^\/perfumes\/[^/]+$/,
+  /^\/cosmetics$/,
+  /^\/cosmetics\/[^/]+$/,
+];
 const ADMIN_PATH_PATTERNS = [
   /^\/admin$/,
   /^\/admin\/login$/,
@@ -347,6 +354,7 @@ function App() {
         {page === "perfumes" && <PerfumesPage onAddToCart={addToCart} />}
         {page === "perfume-detail" && <PerfumeDetailPage onAddToCart={addToCart} />}
         {page === "cosmetics" && <CosmeticsPage onAddToCart={addToCart} />}
+        {page === "cosmetic-detail" && <CosmeticDetailPage onAddToCart={addToCart} />}
         {page === "cart" && (
           <CartPage
             cartItems={cartItems}

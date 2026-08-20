@@ -1,17 +1,7 @@
-import { useEffect, useState } from "react";
-import {
-  ArrowLeft,
-  Eye,
-  EyeOff,
-  LoaderCircle,
-  LockKeyhole,
-  Mail,
-  Phone,
-  ShieldCheck,
-  UserRound,
-} from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, Eye, EyeOff, LockKeyhole, Mail, Phone, ShieldCheck, UserRound } from "lucide-react";
 import PasswordStrength from "../components/PasswordStrength";
-import { adminLogin, adminRegister, getAdminSetupStatus } from "../utils/api";
+import { adminLogin, adminRegister } from "../utils/api";
 import { navigateTo } from "../utils/navigation";
 
 const initialForm = {
@@ -22,14 +12,13 @@ const initialForm = {
   confirmPassword: "",
 };
 
-function AdminField({ autoComplete, icon: Icon, label, name, onChange, placeholder, type = "text", value }) {
+function AdminInput({ autoComplete, icon: Icon, name, onChange, placeholder, type = "text", value }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-bold text-[#6f5d54]">{label}</span>
       <span className="login-slide-field flex min-h-12 items-center gap-3 px-4">
-        <Icon aria-hidden="true" className="text-[#b67858]" size={18} />
+        <Icon aria-hidden="true" className="text-[#b67858]" size={18} strokeWidth={2.3} />
         <input
-          aria-label={label}
+          aria-label={placeholder}
           autoComplete={autoComplete}
           className="min-w-0 flex-1 bg-transparent text-sm font-bold text-[#37231b] outline-none placeholder:text-[#9a8074]"
           name={name}
@@ -44,34 +33,18 @@ function AdminField({ autoComplete, icon: Icon, label, name, onChange, placehold
 }
 
 export default function AdminLoginPage({ onAuthenticated }) {
+  const [mode, setMode] = useState("login");
   const [form, setForm] = useState(initialForm);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [setupStatus, setSetupStatus] = useState("loading");
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const isSignup = mode === "signup";
 
-  const requiresSetup = setupStatus === "required";
-
-  useEffect(() => {
-    let cancelled = false;
-
-    getAdminSetupStatus()
-      .then(({ requiresSetup: needsSetup }) => {
-        if (!cancelled) {
-          setSetupStatus(needsSetup ? "required" : "ready");
-        }
-      })
-      .catch((requestError) => {
-        if (!cancelled) {
-          setSetupStatus("error");
-          setError(requestError.message);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  function switchMode(nextMode) {
+    setMode(nextMode);
+    setError("");
+  }
 
   function updateField(event) {
     const { name, value } = event.target;
@@ -81,24 +54,21 @@ export default function AdminLoginPage({ onAuthenticated }) {
 
   async function submitForm(event) {
     event.preventDefault();
-    const email = form.email.trim();
+    const email = form.email.trim().toLowerCase();
 
-    if (requiresSetup && form.name.trim().length < 2) {
+    if (isSignup && form.name.trim().length < 2) {
       setError("Enter the administrator's full name.");
       return;
     }
-
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setError("Enter a valid admin email address.");
       return;
     }
-
     if (form.password.length < 8) {
       setError("Password must be at least 8 characters.");
       return;
     }
-
-    if (requiresSetup && form.password !== form.confirmPassword) {
+    if (isSignup && form.password !== form.confirmPassword) {
       setError("Passwords do not match.");
       return;
     }
@@ -107,7 +77,7 @@ export default function AdminLoginPage({ onAuthenticated }) {
     setError("");
 
     try {
-      const result = requiresSetup
+      const result = isSignup
         ? await adminRegister({
             name: form.name.trim(),
             phone: form.phone.trim(),
@@ -129,162 +99,90 @@ export default function AdminLoginPage({ onAuthenticated }) {
   }
 
   return (
-    <main className="login-page flex min-h-screen items-center justify-center px-4 py-10 sm:px-6">
-      <section className="w-full max-w-[480px] overflow-hidden rounded-[30px] border border-[#ead8ce] bg-white shadow-[0_24px_60px_rgba(65,41,31,0.16)]">
-        <div className="bg-[linear-gradient(135deg,#c88763_0%,#9b5f45_48%,#6f3f30_100%)] px-7 py-9 text-center text-white sm:px-10">
-          <img
-            className="mx-auto h-20 w-20 rounded-full object-cover shadow-[0_12px_30px_rgba(39,27,22,0.24)]"
-            src="/assets/glownest-logo.png"
-            alt="GlowNest logo"
-          />
-          <p className="mt-5 text-xs font-black uppercase tracking-[0.18em] text-white/75">
-            Secure management portal
-          </p>
-          <h1 className="mt-2 font-serif text-4xl leading-tight">
-            {requiresSetup ? "Create First Admin" : "Admin Sign In"}
+    <main className="login-page customer-login-page admin-auth-page min-h-screen px-[clamp(16px,4vw,56px)] py-[clamp(18px,3vh,34px)]">
+      <span className="admin-auth-orb admin-auth-orb-one" aria-hidden="true" />
+      <span className="admin-auth-orb admin-auth-orb-two" aria-hidden="true" />
+      <section className="relative z-10 mx-auto max-w-[1080px]">
+        <div className="login-page-heading mb-5 text-center">
+          <p className="collection-kicker">GlowNest Secure Portal</p>
+          <h1 className="m-0 mt-3 font-serif text-[clamp(2.4rem,5.8vw,4.8rem)] leading-[0.92] text-[#9b5f45]">
+            Admin Sign in / Sign up
           </h1>
-          {requiresSetup && (
-            <p className="mx-auto mt-3 max-w-[340px] text-sm font-semibold leading-[1.6] text-white/80">
-              Set up the first administrator account for this GlowNest installation.
-            </p>
-          )}
         </div>
 
-        {setupStatus === "loading" ? (
-          <div className="flex items-center justify-center gap-3 px-7 py-14 font-bold text-[#8f563e]">
-            <LoaderCircle aria-hidden="true" className="animate-spin" size={22} />
-            Checking admin database...
-          </div>
-        ) : setupStatus === "error" ? (
-          <div className="px-7 py-10 text-center sm:px-10">
-            <ShieldCheck aria-hidden="true" className="mx-auto text-[#c04c4c]" size={34} />
-            <h2 className="mt-4 font-serif text-3xl text-[#9b5f45]">Admin database unavailable</h2>
-            <p className="mt-3 rounded-md bg-[#fdecec] px-4 py-3 text-sm font-bold leading-[1.6] text-[#c04c4c]">
-              {error}
-            </p>
-            <button
-              className="login-slide-submit mt-6 min-h-11 cursor-pointer rounded-full px-8 font-black text-white"
-              type="button"
-              onClick={() => window.location.reload()}
-            >
-              Try Again
-            </button>
-          </div>
-        ) : (
-          <form className="px-7 py-8 sm:px-10" onSubmit={submitForm}>
-            <div className="mb-6 flex items-center justify-center gap-2 text-[#9b5f45]">
-              <ShieldCheck aria-hidden="true" size={20} strokeWidth={2.3} />
-              <p className="text-sm font-black uppercase tracking-[0.1em]">
-                {requiresSetup ? "Administrator setup" : "Authorized access only"}
-              </p>
-            </div>
-
-            <div className="grid gap-4">
-              {requiresSetup && (
-                <>
-                  <AdminField
-                    autoComplete="name"
-                    icon={UserRound}
-                    label="Full name"
-                    name="name"
-                    onChange={updateField}
-                    placeholder="Administrator name"
-                    value={form.name}
-                  />
-                  <AdminField
-                    autoComplete="tel"
-                    icon={Phone}
-                    label="Phone number"
-                    name="phone"
-                    onChange={updateField}
-                    placeholder="Optional phone number"
-                    value={form.phone}
-                  />
-                </>
-              )}
-
-              <AdminField
-                autoComplete="email"
-                icon={Mail}
-                label="Admin email"
-                name="email"
-                onChange={updateField}
-                placeholder="admin@example.com"
-                type="email"
-                value={form.email}
-              />
-
-              <label className="block">
-                <span className="mb-2 block text-sm font-bold text-[#6f5d54]">Password</span>
-                <span className="login-slide-field flex min-h-12 items-center gap-3 px-4">
-                  <LockKeyhole aria-hidden="true" className="text-[#b67858]" size={18} />
-                  <input
-                    aria-label="Password"
-                    autoComplete={requiresSetup ? "new-password" : "current-password"}
-                    className="min-w-0 flex-1 bg-transparent text-sm font-bold text-[#37231b] outline-none placeholder:text-[#9a8074]"
-                    name="password"
-                    onChange={updateField}
-                    placeholder="Enter your password"
-                    type={showPassword ? "text" : "password"}
-                    value={form.password}
-                  />
-                  <button
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    className="cursor-pointer bg-transparent text-[#8f563e]"
-                    type="button"
-                    onClick={() => setShowPassword((currentValue) => !currentValue)}
-                  >
+        <div className={`login-slider-card admin-login-slider mx-auto ${isSignup ? "show-signup" : ""}`}>
+          <div className="login-form-wrap login-signin">
+            <form className="login-slide-form" onSubmit={submitForm}>
+              <ShieldCheck aria-hidden="true" className="admin-form-shield mx-auto mb-3 text-[#9b5f45]" size={38} />
+              <h2 className="m-0 font-serif text-4xl text-[#271b16]">Admin Sign In</h2>
+              <p className="mt-4 text-sm font-semibold text-[#7c655c]">Access your secure management dashboard</p>
+              <div className="mt-5 grid gap-4">
+                <AdminInput autoComplete="email" icon={Mail} name="email" onChange={updateField} placeholder="Admin email" type="email" value={form.email} />
+                <div className="relative">
+                  <AdminInput autoComplete="current-password" icon={LockKeyhole} name="password" onChange={updateField} placeholder="Password" type={showPassword ? "text" : "password"} value={form.password} />
+                  <button aria-label={showPassword ? "Hide password" : "Show password"} className="absolute right-4 top-3.5 cursor-pointer bg-transparent text-[#8f563e]" type="button" onClick={() => setShowPassword((current) => !current)}>
                     {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
                   </button>
-                </span>
-              </label>
+                </div>
+              </div>
+              {!isSignup && error && <p className="mt-4 rounded-full bg-[#fdecec] px-4 py-2 text-sm font-bold text-[#c04c4c]">{error}</p>}
+              <button className="login-slide-submit mx-auto mt-6 block min-h-12 cursor-pointer rounded-full px-9 font-black text-white disabled:cursor-wait disabled:opacity-60" disabled={isSubmitting} type="submit">
+                {isSubmitting && !isSignup ? "Signing In..." : "Sign In"}
+              </button>
+            </form>
+          </div>
 
-              {requiresSetup && <PasswordStrength password={form.password} />}
+          <div className="login-form-wrap login-signup">
+            <form className="login-slide-form" onSubmit={submitForm}>
+              <h2 className="m-0 font-serif text-4xl text-[#271b16]">Create Admin</h2>
+              <p className="mt-4 text-sm font-semibold text-[#7c655c]">Register a new administrator account</p>
+              <div className="mt-4 grid gap-3">
+                <AdminInput autoComplete="name" icon={UserRound} name="name" onChange={updateField} placeholder="Full name" value={form.name} />
+                <AdminInput autoComplete="tel" icon={Phone} name="phone" onChange={updateField} placeholder="Phone number (optional)" value={form.phone} />
+                <AdminInput autoComplete="email" icon={Mail} name="email" onChange={updateField} placeholder="Admin email" type="email" value={form.email} />
+                <div>
+                  <div className="relative">
+                    <AdminInput autoComplete="new-password" icon={LockKeyhole} name="password" onChange={updateField} placeholder="Password" type={showPassword ? "text" : "password"} value={form.password} />
+                    <button aria-label={showPassword ? "Hide password" : "Show password"} className="absolute right-4 top-3.5 cursor-pointer bg-transparent text-[#8f563e]" type="button" onClick={() => setShowPassword((current) => !current)}>
+                      {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+                    </button>
+                  </div>
+                  <PasswordStrength password={form.password} />
+                </div>
+                <div className="relative">
+                  <AdminInput autoComplete="new-password" icon={LockKeyhole} name="confirmPassword" onChange={updateField} placeholder="Confirm password" type={showConfirmPassword ? "text" : "password"} value={form.confirmPassword} />
+                  <button aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"} className="absolute right-4 top-3.5 cursor-pointer bg-transparent text-[#8f563e]" type="button" onClick={() => setShowConfirmPassword((current) => !current)}>
+                    {showConfirmPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+                  </button>
+                </div>
+              </div>
+              {isSignup && error && <p className="mt-3 rounded-full bg-[#fdecec] px-4 py-2 text-sm font-bold text-[#c04c4c]">{error}</p>}
+              <button className="login-slide-submit mt-4 min-h-12 cursor-pointer rounded-full px-9 font-black text-white disabled:cursor-wait disabled:opacity-60" disabled={isSubmitting} type="submit">
+                {isSubmitting && isSignup ? "Creating Admin..." : "Sign Up"}
+              </button>
+            </form>
+          </div>
 
-              {requiresSetup && (
-                <AdminField
-                  autoComplete="new-password"
-                  icon={LockKeyhole}
-                  label="Confirm password"
-                  name="confirmPassword"
-                  onChange={updateField}
-                  placeholder="Repeat your password"
-                  type={showPassword ? "text" : "password"}
-                  value={form.confirmPassword}
-                />
-              )}
+          <div className="login-overlay">
+            <div className="login-overlay-panel login-overlay-right">
+              <img className="mb-5 h-16 w-16 rounded-full object-cover shadow-lg" src="/assets/glownest-logo.png" alt="GlowNest logo" />
+              <h2 className="m-0 font-serif text-4xl leading-tight">New Administrator?</h2>
+              <p className="mt-4 max-w-[290px] leading-[1.7] text-white/88">Create a protected admin account to manage products, orders, discounts, and notifications.</p>
+              <button className="login-ghost-button mt-7 min-h-11 cursor-pointer rounded-full px-8 font-black text-white" type="button" onClick={() => switchMode("signup")}>Sign Up</button>
             </div>
+            <div className="login-overlay-panel login-overlay-left">
+              <img className="mb-5 h-16 w-16 rounded-full object-cover shadow-lg" src="/assets/glownest-logo.png" alt="GlowNest logo" />
+              <h2 className="m-0 font-serif text-4xl leading-tight">Welcome Back!</h2>
+              <p className="mt-4 max-w-[290px] leading-[1.7] text-white/88">Sign in with your administrator credentials to return to the GlowNest dashboard.</p>
+              <button className="login-ghost-button mt-7 min-h-11 cursor-pointer rounded-full px-8 font-black text-white" type="button" onClick={() => switchMode("login")}>Sign In</button>
+            </div>
+          </div>
+        </div>
 
-            {error && (
-              <p className="mt-5 rounded-md bg-[#fdecec] px-4 py-3 text-center text-sm font-bold text-[#c04c4c]">
-                {error}
-              </p>
-            )}
-
-            <button
-              className="login-slide-submit mt-7 min-h-12 w-full cursor-pointer rounded-full px-8 font-black text-white disabled:cursor-wait disabled:opacity-60"
-              disabled={isSubmitting}
-              type="submit"
-            >
-              {isSubmitting
-                ? requiresSetup
-                  ? "Creating Admin..."
-                  : "Signing In..."
-                : requiresSetup
-                  ? "Create Admin Account"
-                  : "Sign In to Dashboard"}
-            </button>
-
-            <button
-              className="mx-auto mt-5 flex cursor-pointer items-center gap-2 bg-transparent text-sm font-bold text-[#8f563e]"
-              type="button"
-              onClick={() => navigateTo("/")}
-            >
-              <ArrowLeft aria-hidden="true" size={16} />
-              Back to store
-            </button>
-          </form>
-        )}
+        <button className="mx-auto mt-4 flex cursor-pointer items-center gap-2 bg-transparent text-sm font-bold text-[#8f563e]" type="button" onClick={() => navigateTo("/") }>
+          <ArrowLeft aria-hidden="true" size={16} />
+          Back to store
+        </button>
       </section>
     </main>
   );

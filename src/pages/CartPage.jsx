@@ -16,8 +16,7 @@ import { createOrder } from "../utils/api";
 import { formatPrice } from "../utils/format";
 import { getDiscountPricing } from "../utils/discount";
 import { useDiscountClock } from "../hooks/useDiscountClock";
-
-const DELIVERY_FEE = 500;
+import { BASE_DELIVERY_FEE, calculateDelivery, deliveryWeightLabel } from "../utils/delivery";
 
 function paymentLabel(method) {
   return method === "card" ? "Online payment via debit or credit card" : "Cash on delivery";
@@ -188,15 +187,17 @@ export default function CartPage({
       (sum, item) => sum + item.priceValue * item.quantity,
       0
     );
-    const deliveryFee = pricedCartItems.length > 0 ? DELIVERY_FEE : 0;
+    const delivery = calculateDelivery(pricedCartItems);
     const discount = subtotal - discountedSubtotal;
 
     return {
       itemCount,
       subtotal,
-      deliveryFee,
+      deliveryFee: delivery.deliveryFee,
+      perfumeWeightGrams: delivery.perfumeWeightGrams,
+      billableKilograms: delivery.billableKilograms,
       discount,
-      total: Math.max(0, discountedSubtotal + deliveryFee),
+      total: Math.max(0, discountedSubtotal + delivery.deliveryFee),
     };
   }, [pricedCartItems]);
   const paymentReturn = useMemo(() => {
@@ -246,7 +247,7 @@ export default function CartPage({
             email: delivery.email.trim(),
             address: delivery.address.trim(),
           },
-          deliveryFee: DELIVERY_FEE,
+          deliveryFee: totals.deliveryFee,
           discount: totals.discount,
           paymentMethod,
           items: invoiceItems,
@@ -268,7 +269,7 @@ export default function CartPage({
           email: delivery.email.trim(),
           address: delivery.address.trim(),
         },
-        deliveryFee: Number(order.delivery_fee_lkr ?? DELIVERY_FEE),
+        deliveryFee: Number(order.delivery_fee_lkr ?? totals.deliveryFee ?? BASE_DELIVERY_FEE),
         discount: Number(order.discount_lkr ?? totals.discount),
         items: order.items || invoiceItems,
         paymentMethod,
@@ -487,6 +488,11 @@ export default function CartPage({
                   <span className="inline-flex items-center gap-2">
                     <Truck aria-hidden="true" size={17} />
                     Delivery charge
+                    {totals.perfumeWeightGrams > 0 && (
+                      <span className="text-xs font-semibold text-[#8f756f]">
+                        ({deliveryWeightLabel(totals.perfumeWeightGrams)})
+                      </span>
+                    )}
                   </span>
                   <strong className="text-[#271b16]">{formatPrice(totals.deliveryFee)}</strong>
                 </div>

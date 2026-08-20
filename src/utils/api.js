@@ -127,6 +127,23 @@ export function getAdminOrders(token) {
   return apiFetch("/api/admin/orders", { token }).then((data) => data.orders);
 }
 
+export function getAdminNotifications(token) {
+  return apiFetch("/api/admin/notifications", { token }).then((data) => data.notifications);
+}
+
+export function markAdminNotificationsRead(token) {
+  return apiFetch("/api/admin/notifications/read", { method: "PUT", token }).then(
+    (data) => data.notifications
+  );
+}
+
+export function deleteAdminNotification(notificationId, token) {
+  return apiFetch(`/api/admin/notifications/${encodeURIComponent(notificationId)}`, {
+    method: "DELETE",
+    token,
+  }).then((data) => data.notifications);
+}
+
 export function updateAdminOrderPayment(orderId, payload, token) {
   return apiFetch(`/api/admin/orders/${encodeURIComponent(orderId)}/payment`, {
     method: "PUT",

@@ -30,6 +30,10 @@ export function pageFromPath() {
     return "perfumes";
   }
 
+  if (path.startsWith("/cosmetics/")) {
+    return "cosmetic-detail";
+  }
+
   if (path === "/cosmetics") {
     return "cosmetics";
   }

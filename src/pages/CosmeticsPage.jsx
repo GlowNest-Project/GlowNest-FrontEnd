@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import ProductCard from "../components/ProductCard";
 import { getProducts } from "../utils/api";
 
@@ -26,6 +26,18 @@ export default function CosmeticsPage({ onAddToCart }) {
       cancelled = true;
     };
   }, []);
+
+  useLayoutEffect(() => {
+    if (status !== "ready") return;
+
+    const shouldRestore = sessionStorage.getItem("glownestRestoreCosmeticsScroll") === "true";
+    const savedScrollY = Number(sessionStorage.getItem("glownestCosmeticsScrollY"));
+
+    if (!shouldRestore || Number.isNaN(savedScrollY)) return;
+
+    sessionStorage.removeItem("glownestRestoreCosmeticsScroll");
+    window.requestAnimationFrame(() => window.scrollTo({ top: savedScrollY, behavior: "auto" }));
+  }, [status]);
 
   return (
     <main>

@@ -11,7 +11,7 @@ function InfoTile({ label, value }) {
   return (
     <div className="rounded-lg border border-[#ead8ce] bg-white p-5">
       <p className="text-xs font-extrabold uppercase text-[#d7a17c]">{label}</p>
-      <p className="mt-2 font-bold leading-[1.5] text-[#271b16]">{value}</p>
+      <p className="mt-2 text-sm font-bold leading-[1.5] text-[#271b16] md:text-base">{value}</p>
     </div>
   );
 }
@@ -131,7 +131,7 @@ export default function PerfumeDetailPage({ onAddToCart }) {
     <main>
       <section className="bg-[linear-gradient(135deg,#ffffff_0%,#fff8f3_55%,#f7eee9_100%)] px-[clamp(18px,5vw,72px)] py-[clamp(38px,7vw,82px)]">
         <button
-          className="mb-8 inline-flex cursor-pointer items-center gap-2 bg-transparent p-0 text-lg font-extrabold text-[#8f563e] transition hover:text-[#6f3f2e] md:text-xl"
+          className="mb-8 inline-flex cursor-pointer items-center gap-2 bg-transparent p-0 text-base font-extrabold text-[#8f563e] transition hover:text-[#6f3f2e] md:text-lg"
           type="button"
           onClick={backToPerfumes}
         >
@@ -150,18 +150,18 @@ export default function PerfumeDetailPage({ onAddToCart }) {
           />
 
           <div>
-            <p className="mb-4 text-base font-extrabold uppercase tracking-wide text-[#d7a17c] md:text-lg">
+            <p className="mb-3 text-sm font-extrabold uppercase tracking-wide text-[#d7a17c] md:text-base">
               {product.brand} | {product.concentration}
             </p>
-            <h1 className="m-0 font-serif text-[clamp(3rem,8vw,6rem)] leading-[0.95] text-[#9b5f45]">
+            <h1 className="m-0 max-w-[760px] font-serif text-[clamp(2.25rem,5vw,4rem)] leading-[1] text-[#9b5f45]">
               {product.name}
             </h1>
-            <p className="mt-6 max-w-[680px] text-base leading-[1.8] text-[#5f4c43] md:text-lg">
+            <p className="mt-5 max-w-[680px] text-sm leading-[1.75] text-[#5f4c43] md:text-base">
               {product.detailDescription}
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <span className="rounded-md bg-[#fff7f1] px-4 py-3 text-xl font-extrabold text-[#9b5f45]">
+              <span className="rounded-md bg-[#fff7f1] px-4 py-3 text-lg font-extrabold text-[#9b5f45]">
                 {formatPrice(fullBottlePricing.priceValue)}
               </span>
               {fullBottlePricing.isActive && (
@@ -280,8 +280,8 @@ export default function PerfumeDetailPage({ onAddToCart }) {
             <div className="grid gap-4">
               {product.notes.map((note) => (
                 <div className="border-l-2 border-[#d7a17c] pl-4" key={note.label}>
-                  <h2 className="font-serif text-2xl text-[#9b5f45]">{note.label}</h2>
-                  <p className="mt-1 text-[#5f4c43]">{note.value}</p>
+                  <h2 className="font-serif text-xl text-[#9b5f45]">{note.label}</h2>
+                  <p className="mt-1 text-sm text-[#5f4c43] md:text-base">{note.value}</p>
                 </div>
               ))}
             </div>

@@ -1206,6 +1206,326 @@ html {
   }
 }
 
+.home-hero-copy {
+  animation: home-copy-rise 760ms cubic-bezier(0.22, 1, 0.36, 1) 80ms both;
+}
+
+.home-hero-visual {
+  animation: home-visual-reveal 900ms cubic-bezier(0.16, 1, 0.3, 1) 140ms both;
+  min-height: 440px;
+}
+
+.home-hero-image-wrap {
+  height: 100%;
+  min-height: 424px;
+}
+
+.home-hero-image {
+  animation: home-image-breathe 9s ease-in-out infinite alternate;
+  transform-origin: 50% 55%;
+  will-change: transform;
+}
+
+.home-hero-shimmer {
+  animation: home-shimmer 5.4s ease-in-out 1.2s infinite;
+  background: linear-gradient(105deg, transparent 26%, rgba(255, 255, 255, 0.5) 46%, transparent 64%);
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(-135%);
+}
+
+.home-hero-orb {
+  border-radius: 999px;
+  filter: blur(3px);
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+}
+
+.home-hero-orb-one {
+  animation: home-orb-drift 7s ease-in-out infinite alternate;
+  background: rgba(215, 161, 124, 0.34);
+  height: 180px;
+  right: -54px;
+  top: -46px;
+  width: 180px;
+}
+
+.home-hero-orb-two {
+  animation: home-orb-drift 8.5s ease-in-out 600ms infinite alternate-reverse;
+  background: rgba(247, 228, 216, 0.78);
+  bottom: -58px;
+  height: 150px;
+  left: -48px;
+  width: 150px;
+}
+
+.home-floating-badge {
+  animation: home-badge-float 4.6s ease-in-out infinite;
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 999px;
+  box-shadow: 0 14px 32px rgba(143, 86, 62, 0.18);
+  color: #8f563e;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  padding: 0.7rem 1rem;
+  position: absolute;
+  text-transform: uppercase;
+  z-index: 3;
+}
+
+.home-floating-badge-one {
+  left: -18px;
+  top: 12%;
+}
+
+.home-floating-badge-two {
+  animation-delay: 900ms;
+  bottom: 25%;
+  right: -20px;
+}
+
+.home-reveal {
+  opacity: 0;
+  transform: translateY(38px) scale(0.985);
+  transition:
+    opacity 680ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 680ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 260ms ease,
+    border-color 260ms ease;
+  transition-delay: var(--home-reveal-delay, 0ms);
+}
+
+.home-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.home-photo-card.home-reveal {
+  filter: blur(10px);
+  opacity: 0;
+  text-align: left;
+  transform: translateY(86px) scale(0.72) rotate(var(--home-photo-rotate, 0deg));
+  transition:
+    filter 820ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 680ms ease,
+    transform 880ms cubic-bezier(0.16, 1.3, 0.3, 1),
+    box-shadow 300ms ease;
+  transition-delay: var(--home-reveal-delay, 0ms);
+}
+
+.home-photo-card.home-reveal.is-visible {
+  filter: blur(0);
+  opacity: 1;
+  transform: translateY(0) scale(1) rotate(0);
+}
+
+.home-photo-card.home-reveal.is-visible:hover {
+  box-shadow: 0 30px 70px rgba(143, 86, 62, 0.22);
+  transform: translateY(-10px) scale(1.015);
+  transition-delay: 0ms;
+}
+
+.home-photo-image {
+  transition: filter 600ms ease, transform 900ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.home-photo-card:hover .home-photo-image {
+  filter: saturate(1.08) contrast(1.03);
+  transform: scale(1.09);
+}
+
+.home-photo-glow {
+  background: linear-gradient(110deg, transparent 20%, rgba(255, 255, 255, 0.55) 46%, transparent 70%);
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(-120%);
+  transition: opacity 260ms ease, transform 900ms ease;
+  z-index: 2;
+}
+
+.home-photo-card:hover .home-photo-glow {
+  opacity: 1;
+  transform: translateX(120%);
+}
+
+.admin-notification-popup {
+  animation: admin-notification-pop 520ms cubic-bezier(0.16, 1.2, 0.3, 1) both;
+}
+
+.admin-auth-page {
+  isolation: isolate;
+  position: relative;
+}
+
+.admin-auth-page::before {
+  animation: admin-auth-grid-drift 12s linear infinite alternate;
+  background-image:
+    linear-gradient(rgba(155, 95, 69, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(155, 95, 69, 0.045) 1px, transparent 1px);
+  background-size: 42px 42px;
+  content: "";
+  inset: 0;
+  mask-image: radial-gradient(circle at center, #000 10%, transparent 72%);
+  pointer-events: none;
+  position: absolute;
+  z-index: -2;
+}
+
+.admin-auth-orb {
+  animation: admin-auth-orb-float 7s ease-in-out infinite alternate;
+  border-radius: 999px;
+  filter: blur(2px);
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+}
+
+.admin-auth-orb-one {
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.8), rgba(200,135,99,0.2));
+  height: clamp(180px, 28vw, 390px);
+  left: -9%;
+  top: 7%;
+  width: clamp(180px, 28vw, 390px);
+}
+
+.admin-auth-orb-two {
+  animation-delay: 800ms;
+  animation-direction: alternate-reverse;
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.75), rgba(155,95,69,0.16));
+  bottom: -12%;
+  height: clamp(190px, 30vw, 420px);
+  right: -8%;
+  width: clamp(190px, 30vw, 420px);
+}
+
+.admin-login-slider {
+  animation: admin-auth-card-in 780ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  border: 1px solid rgba(234, 216, 206, 0.86);
+  box-shadow:
+    0 32px 90px rgba(65, 41, 31, 0.2),
+    0 0 0 1px rgba(255,255,255,0.8) inset;
+}
+
+.admin-form-shield {
+  animation: admin-shield-pulse 2.8s ease-in-out infinite;
+  filter: drop-shadow(0 8px 14px rgba(155, 95, 69, 0.24));
+}
+
+@keyframes admin-auth-card-in {
+  from {
+    filter: blur(12px);
+    opacity: 0;
+    transform: translateY(35px) scale(0.94);
+  }
+  to {
+    filter: blur(0);
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes admin-auth-orb-float {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(26px, -20px, 0) scale(1.08); }
+}
+
+@keyframes admin-auth-grid-drift {
+  from { transform: translate3d(-12px, -8px, 0); }
+  to { transform: translate3d(12px, 8px, 0); }
+}
+
+@keyframes admin-shield-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+@keyframes admin-notification-pop {
+  from {
+    filter: blur(8px);
+    opacity: 0;
+    transform: translateY(-24px) scale(0.9);
+  }
+  to {
+    filter: blur(0);
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.home-offer-card:hover {
+  border-color: #c88763;
+  box-shadow: 0 22px 48px rgba(143, 86, 62, 0.12);
+  transform: translateY(-6px) scale(1.01);
+}
+
+@keyframes home-copy-rise {
+  from {
+    filter: blur(8px);
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    filter: blur(0);
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes home-visual-reveal {
+  from {
+    filter: blur(12px);
+    opacity: 0;
+    transform: translateY(34px) scale(0.94) rotate(1.5deg);
+  }
+  to {
+    filter: blur(0);
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0);
+  }
+}
+
+@keyframes home-image-breathe {
+  from { transform: scale(1.01) translate3d(-0.4%, 0, 0); }
+  to { transform: scale(1.065) translate3d(0.6%, -0.8%, 0); }
+}
+
+@keyframes home-shimmer {
+  0%, 42% { opacity: 0; transform: translateX(-135%); }
+  52% { opacity: 0.75; }
+  68%, 100% { opacity: 0; transform: translateX(135%); }
+}
+
+@keyframes home-orb-drift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(-18px, 16px, 0) scale(1.08); }
+}
+
+@keyframes home-badge-float {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-10px) rotate(1deg); }
+}
+
+@media (max-width: 767px) {
+  .home-hero-visual,
+  .home-hero-image-wrap {
+    min-height: 360px;
+  }
+
+  .home-hero-image {
+    min-height: 360px;
+  }
+
+  .home-floating-badge-one { left: 8px; }
+  .home-floating-badge-two { right: 8px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .page-transition {
     animation: none;
@@ -1219,11 +1539,47 @@ html {
   .collection-kicker::before,
   .collection-kicker::after,
   .letter-sweep,
-  .word-sweep {
+  .word-sweep,
+  .home-hero-copy,
+  .home-hero-visual,
+  .home-hero-image,
+  .home-hero-shimmer,
+  .home-hero-orb,
+  .home-floating-badge {
     animation: none;
     opacity: 1;
     transform: none;
     filter: none;
+  }
+
+  .admin-notification-popup {
+    animation: none;
+  }
+
+  .admin-auth-page::before,
+  .admin-auth-orb,
+  .admin-login-slider,
+  .admin-form-shield {
+    animation: none;
+    filter: none;
+    transform: none;
+  }
+
+  .home-reveal,
+  .home-reveal.is-visible {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .home-photo-card.home-reveal,
+  .home-photo-card.home-reveal.is-visible,
+  .home-photo-card.home-reveal.is-visible:hover,
+  .home-photo-image,
+  .home-photo-card:hover .home-photo-image {
+    filter: none;
+    transform: none;
+    transition: none;
   }
 }
 

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Bell,
   Boxes,
   CheckCircle2,
   CreditCard,
@@ -17,9 +18,12 @@ import {
 } from "lucide-react";
 import {
   createAdminProduct,
+  deleteAdminNotification,
   deleteAdminOrder,
+  getAdminNotifications,
   getAdminOrders,
   getAdminProducts,
+  markAdminNotificationsRead,
   updateAdminOrderPayment,
   updateAdminOrderStatus,
   updateAdminProduct,
@@ -66,7 +70,24 @@ const emptyForm = {
   baseNotes: "",
   accords: "",
   bestFor: "",
+  keyIngredients: "",
+  mainBenefits: "",
+  skinType: "",
+  skinConcerns: "",
+  howToUse: "",
 };
+
+function emptyFormForCategory(category) {
+  const isCosmetic = category === "cosmetics";
+
+  return {
+    ...emptyForm,
+    category: isCosmetic ? "cosmetics" : "perfumes",
+    type: isCosmetic ? "Cosmetic" : "Perfume",
+    discountTarget: isCosmetic ? "full" : "both",
+    decantSize: isCosmetic ? "" : "10mL",
+  };
+}
 
 function fieldValue(product, fieldName) {
   if (fieldName === "category") return product.category || "perfumes";
@@ -278,7 +299,10 @@ function ProductDiscountSummary({ now, product }) {
 export default function AdminPage({ onLogout, token, user }) {
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [popupNotification, setPopupNotification] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [activeProductCategory, setActiveProductCategory] = useState("perfumes");
   const [editingProductId, setEditingProductId] = useState(null);
   const [activeSection, setActiveSection] = useState("products");
   const [activeOrderView, setActiveOrderView] = useState("new");
@@ -289,6 +313,7 @@ export default function AdminPage({ onLogout, token, user }) {
   const [error, setError] = useState("");
   const [orderMessage, setOrderMessage] = useState("");
   const [orderError, setOrderError] = useState("");
+  const notificationIdsRef = useRef(new Set());
   const discountClock = useDiscountClock(products);
 
   const productCounts = useMemo(
@@ -303,12 +328,22 @@ export default function AdminPage({ onLogout, token, user }) {
     [products]
   );
 
+  const visibleProducts = useMemo(
+    () => products.filter((product) => product.category === activeProductCategory),
+    [activeProductCategory, products]
+  );
+
   const pendingOnlineOrders = useMemo(
     () =>
       orders.filter(
         (order) => order.paymentMethod === "card" && order.paymentStatus === "pending"
       ),
     [orders]
+  );
+
+  const unreadNotificationCount = useMemo(
+    () => notifications.filter((notification) => !notification.isRead).length,
+    [notifications]
   );
 
   const totalOrderValue = useMemo(
@@ -351,11 +386,13 @@ export default function AdminPage({ onLogout, token, user }) {
     let cancelled = false;
     setStatus("loading");
 
-    Promise.all([getAdminProducts(token), getAdminOrders(token)])
-      .then(([productData, orderData]) => {
+    Promise.all([getAdminProducts(token), getAdminOrders(token), getAdminNotifications(token)])
+      .then(([productData, orderData, notificationData]) => {
         if (!cancelled) {
           setProducts(productData);
           setOrders(orderData);
+          setNotifications(notificationData);
+          notificationIdsRef.current = new Set(notificationData.map((notification) => notification.id));
           setStatus("ready");
         }
       })
@@ -377,19 +414,38 @@ export default function AdminPage({ onLogout, token, user }) {
     }
 
     const intervalId = window.setInterval(() => {
-      Promise.all([getAdminOrders(token), getAdminProducts(token)])
-        .then(([orderData, productData]) => {
+      Promise.all([getAdminOrders(token), getAdminProducts(token), getAdminNotifications(token)])
+        .then(([orderData, productData, notificationData]) => {
           setOrders(orderData);
           setProducts(productData);
+          const newNotification = notificationData.find(
+            (notification) => !notificationIdsRef.current.has(notification.id)
+          );
+          notificationIdsRef.current = new Set(notificationData.map((notification) => notification.id));
+          setNotifications(notificationData);
+          if (newNotification) setPopupNotification(newNotification);
         })
         .catch(() => {});
-    }, 30000);
+    }, 15000);
 
     return () => window.clearInterval(intervalId);
   }, [token, user?.role]);
 
+  useEffect(() => {
+    if (!popupNotification) return undefined;
+
+    const timerId = window.setTimeout(() => setPopupNotification(null), 7000);
+    return () => window.clearTimeout(timerId);
+  }, [popupNotification]);
+
   function updateField(event) {
     const { checked, name, type, value } = event.target;
+
+    if (name === "category") {
+      selectProductCategory(value);
+      return;
+    }
+
     setForm((currentForm) => {
       const nextValue = type === "checkbox" ? checked : value;
 
@@ -399,22 +455,28 @@ export default function AdminPage({ onLogout, token, user }) {
         ...(name === "discountEnabled" && !checked
           ? {
               discountType: "percentage",
-              discountTarget: "both",
+              discountTarget: currentForm.category === "cosmetics" ? "full" : "both",
               discountPercent: "",
               discountAmount: "",
               discountStartAt: "",
               discountEndAt: "",
             }
           : {}),
-        ...(name === "category" && value === "cosmetics" ? { type: "Cosmetic" } : {}),
-        ...(name === "category" && value === "perfumes" ? { type: "Perfume" } : {}),
       };
     });
   }
 
   function resetForm() {
     setEditingProductId(null);
-    setForm(emptyForm);
+    setForm(emptyFormForCategory(activeProductCategory));
+    setMessage("");
+    setError("");
+  }
+
+  function selectProductCategory(category) {
+    setActiveProductCategory(category);
+    setEditingProductId(null);
+    setForm(emptyFormForCategory(category));
     setMessage("");
     setError("");
   }
@@ -443,7 +505,8 @@ export default function AdminPage({ onLogout, token, user }) {
       });
       setMessage(editingProductId ? "Product updated." : "Product uploaded.");
       setEditingProductId(null);
-      setForm(emptyForm);
+      setActiveProductCategory(savedProduct.category);
+      setForm(emptyFormForCategory(savedProduct.category));
       setStatus("ready");
     } catch (saveError) {
       setError(saveError.message);
@@ -504,6 +567,36 @@ export default function AdminPage({ onLogout, token, user }) {
       setOrderError(loadError.message);
     } finally {
       setOrdersStatus("idle");
+    }
+  }
+
+  async function openNotifications() {
+    setActiveSection("notifications");
+    setPopupNotification(null);
+    setNotifications((current) =>
+      current.map((notification) => ({ ...notification, isRead: true }))
+    );
+
+    try {
+      const updatedNotifications = await markAdminNotificationsRead(token);
+      setNotifications(updatedNotifications);
+      notificationIdsRef.current = new Set(
+        updatedNotifications.map((notification) => notification.id)
+      );
+    } catch (notificationError) {
+      setError(notificationError.message);
+    }
+  }
+
+  async function removeNotification(notificationId) {
+    try {
+      const updatedNotifications = await deleteAdminNotification(notificationId, token);
+      setNotifications(updatedNotifications);
+      notificationIdsRef.current = new Set(
+        updatedNotifications.map((notification) => notification.id)
+      );
+    } catch (notificationError) {
+      setError(notificationError.message);
     }
   }
 
@@ -615,6 +708,33 @@ export default function AdminPage({ onLogout, token, user }) {
               <span>{formatPrice(item.lineTotal)}</span>
             </div>
           ))}
+        </div>
+
+        <div className="mt-4 ml-auto grid max-w-[420px] gap-2 rounded-md border border-[#ead8ce] bg-white p-4 text-sm">
+          <div className="flex items-center justify-between gap-4 text-[#6f5d54]">
+            <span>Original subtotal</span>
+            <strong className="text-[#271b16]">{formatPrice(order.subtotal)}</strong>
+          </div>
+          {order.discount > 0 && (
+            <>
+              <div className="flex items-center justify-between gap-4 rounded-md bg-[#effaf4] px-3 py-2 text-[#2f8b5b]">
+                <span className="font-extrabold">Discount applied</span>
+                <strong>-{formatPrice(order.discount)}</strong>
+              </div>
+              <div className="flex items-center justify-between gap-4 text-[#6f5d54]">
+                <span>After discount</span>
+                <strong className="text-[#271b16]">{formatPrice(order.subtotal - order.discount)}</strong>
+              </div>
+            </>
+          )}
+          <div className="flex items-center justify-between gap-4 text-[#6f5d54]">
+            <span>Delivery</span>
+            <strong className="text-[#271b16]">{formatPrice(order.deliveryFee)}</strong>
+          </div>
+          <div className="flex items-center justify-between gap-4 border-t border-[#ead8ce] pt-2 text-base font-extrabold text-[#9b5f45]">
+            <span>Final total</span>
+            <strong>{formatPrice(order.total)}</strong>
+          </div>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -742,15 +862,23 @@ export default function AdminPage({ onLogout, token, user }) {
           GlowNest Admin
         </p>
         <h1 className="m-0 flex items-center gap-4 font-serif text-[clamp(3.5rem,10vw,7rem)] leading-[0.92] text-[#9b5f45]">
-          {activeSection === "orders" ? (
+          {activeSection === "notifications" ? (
+            <Bell aria-hidden="true" className="h-12 w-12 sm:h-16 sm:w-16" />
+          ) : activeSection === "orders" ? (
             <ReceiptText aria-hidden="true" className="h-12 w-12 sm:h-16 sm:w-16" />
           ) : (
             <Boxes aria-hidden="true" className="h-12 w-12 sm:h-16 sm:w-16" />
           )}
-          {activeSection === "orders" ? "Orders" : "Products"}
+          {activeSection === "notifications"
+            ? "Notifications"
+            : activeSection === "orders"
+              ? "Orders"
+              : "Products"}
         </h1>
         <p className="mt-6 max-w-[680px] text-base leading-[1.8] text-[#5f4c43] md:text-lg">
-          {activeSection === "orders"
+          {activeSection === "notifications"
+            ? "See every new-order alert and remove notifications you no longer need."
+            : activeSection === "orders"
             ? "View customer orders, track online payment notifications, and update payment status."
             : "Upload perfume and cosmetic items, update prices, and control in-stock or out-of-stock status."}
         </p>
@@ -781,6 +909,23 @@ export default function AdminPage({ onLogout, token, user }) {
             {pendingOnlineOrders.length > 0 && (
               <span className="rounded-full bg-[#c04c4c] px-2 py-0.5 text-xs text-white">
                 {pendingOnlineOrders.length}
+              </span>
+            )}
+          </button>
+          <button
+            className={`relative inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-5 font-bold transition ${
+              activeSection === "notifications"
+                ? "bg-[#9b5f45] text-white shadow-sm"
+                : "border border-[#ead8ce] bg-white text-[#8f563e]"
+            }`}
+            type="button"
+            onClick={openNotifications}
+          >
+            <Bell aria-hidden="true" size={18} />
+            Notifications
+            {unreadNotificationCount > 0 && (
+              <span className="rounded-full bg-[#c04c4c] px-2 py-0.5 text-xs text-white">
+                {unreadNotificationCount}
               </span>
             )}
           </button>
@@ -828,13 +973,18 @@ export default function AdminPage({ onLogout, token, user }) {
               >
                 <option value="perfumes">Perfumes</option>
                 <option value="cosmetics">Cosmetics</option>
-                <option value="skincare">Skincare</option>
               </select>
             </label>
             <AdminField label="Product name" name="name" onChange={updateField} value={form.name} />
             <AdminField label="Brand" name="brand" onChange={updateField} value={form.brand} />
             <AdminField label="Type" name="type" onChange={updateField} value={form.type} />
-            <AdminField label="Full bottle price" name="priceValue" onChange={updateField} type="number" value={form.priceValue} />
+            <AdminField
+              label={form.category === "cosmetics" ? "Price" : "Full bottle price"}
+              name="priceValue"
+              onChange={updateField}
+              type="number"
+              value={form.priceValue}
+            />
             <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md border border-[#ead8ce] bg-[#fff8f3] px-4 md:col-span-2">
               <input
                 checked={form.discountEnabled}
@@ -863,21 +1013,23 @@ export default function AdminPage({ onLogout, token, user }) {
                 <option value="fixed_amount">Fixed amount (LKR)</option>
               </select>
             </label>
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-extrabold uppercase text-[#d7a17c]">
-                Apply discount to
-              </span>
-              <select
-                className="min-h-11 w-full rounded-md border border-[#ead8ce] bg-white px-3 font-semibold text-[#271b16] outline-none transition focus:border-[#c88763] focus:ring-4 focus:ring-[#f7e4d8]"
-                name="discountTarget"
-                onChange={updateField}
-                value={form.discountTarget}
-              >
-                <option value="full">Full bottle only</option>
-                <option value="decant">Decant only</option>
-                <option value="both">Full bottle and decant</option>
-              </select>
-            </label>
+            {form.category === "perfumes" && (
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-extrabold uppercase text-[#d7a17c]">
+                  Apply discount to
+                </span>
+                <select
+                  className="min-h-11 w-full rounded-md border border-[#ead8ce] bg-white px-3 font-semibold text-[#271b16] outline-none transition focus:border-[#c88763] focus:ring-4 focus:ring-[#f7e4d8]"
+                  name="discountTarget"
+                  onChange={updateField}
+                  value={form.discountTarget}
+                >
+                  <option value="full">Full bottle only</option>
+                  <option value="decant">Decant only</option>
+                  <option value="both">Full bottle and decant</option>
+                </select>
+              </label>
+            )}
             {form.discountType === "fixed_amount" ? (
               <AdminField
                 label="Discount amount (LKR)"
@@ -920,14 +1072,22 @@ export default function AdminPage({ onLogout, token, user }) {
               </>
             )}
             <AdminField label="KOKO Pay text" name="kokoPay" onChange={updateField} value={form.kokoPay} />
-            <AdminField label="Decant price" name="decantPriceValue" onChange={updateField} type="number" value={form.decantPriceValue} />
-            <AdminField label="Decant size" name="decantSize" onChange={updateField} value={form.decantSize} />
-            <AdminField label="Concentration" name="concentration" onChange={updateField} value={form.concentration} />
+            {form.category === "perfumes" && (
+              <>
+                <AdminField label="Decant price" name="decantPriceValue" onChange={updateField} type="number" value={form.decantPriceValue} />
+                <AdminField label="Decant size" name="decantSize" onChange={updateField} value={form.decantSize} />
+                <AdminField label="Concentration" name="concentration" onChange={updateField} value={form.concentration} />
+              </>
+            )}
             <AdminField label="Volume" name="volume" onChange={updateField} value={form.volume} />
             <AdminField label="Gender" name="gender" onChange={updateField} value={form.gender} />
-            <AdminField label="Fragrance family" name="fragranceFamily" onChange={updateField} value={form.fragranceFamily} />
-            <AdminField label="Release year" name="releaseYear" onChange={updateField} value={form.releaseYear} />
-            <AdminField label="Perfumers" name="perfumers" onChange={updateField} value={form.perfumers} />
+            {form.category === "perfumes" && (
+              <>
+                <AdminField label="Fragrance family" name="fragranceFamily" onChange={updateField} value={form.fragranceFamily} />
+                <AdminField label="Release year" name="releaseYear" onChange={updateField} value={form.releaseYear} />
+                <AdminField label="Perfumers" name="perfumers" onChange={updateField} value={form.perfumers} />
+              </>
+            )}
             <label className="block">
               <span className="mb-1.5 block text-xs font-extrabold uppercase text-[#d7a17c]">
                 Stock Status
@@ -963,7 +1123,7 @@ export default function AdminPage({ onLogout, token, user }) {
               value={form.detailImage}
             />
             <AdminImageUpload
-              label="Pop-up bottle / box image"
+              label={form.category === "cosmetics" ? "Pop-up product image" : "Pop-up bottle / box image"}
               name="popImage"
               onFileChange={uploadImage}
               onUrlChange={updateField}
@@ -975,11 +1135,23 @@ export default function AdminPage({ onLogout, token, user }) {
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
             <AdminTextarea label="Short description" name="shortDescription" onChange={updateField} value={form.shortDescription} />
             <AdminTextarea label="Full detail description" name="detailDescription" onChange={updateField} value={form.detailDescription} />
-            <AdminTextarea label="Top notes, comma separated" name="topNotes" onChange={updateField} value={form.topNotes} />
-            <AdminTextarea label="Heart notes, comma separated" name="heartNotes" onChange={updateField} value={form.heartNotes} />
-            <AdminTextarea label="Base notes, comma separated" name="baseNotes" onChange={updateField} value={form.baseNotes} />
-            <AdminTextarea label="Main accords, comma separated" name="accords" onChange={updateField} value={form.accords} />
-            <AdminTextarea label="Best for, comma separated" name="bestFor" onChange={updateField} value={form.bestFor} />
+            {form.category === "perfumes" ? (
+              <>
+                <AdminTextarea label="Top notes, comma separated" name="topNotes" onChange={updateField} value={form.topNotes} />
+                <AdminTextarea label="Heart notes, comma separated" name="heartNotes" onChange={updateField} value={form.heartNotes} />
+                <AdminTextarea label="Base notes, comma separated" name="baseNotes" onChange={updateField} value={form.baseNotes} />
+                <AdminTextarea label="Main accords, comma separated" name="accords" onChange={updateField} value={form.accords} />
+                <AdminTextarea label="Best for, comma separated" name="bestFor" onChange={updateField} value={form.bestFor} />
+              </>
+            ) : (
+              <>
+                <AdminTextarea label="Key Ingredients" name="keyIngredients" onChange={updateField} value={form.keyIngredients} />
+                <AdminTextarea label="Main Benefits" name="mainBenefits" onChange={updateField} value={form.mainBenefits} />
+                <AdminTextarea label="Skin Type" name="skinType" onChange={updateField} value={form.skinType} />
+                <AdminTextarea label="Skin Concerns" name="skinConcerns" onChange={updateField} value={form.skinConcerns} />
+                <AdminTextarea label="How to Use" name="howToUse" onChange={updateField} value={form.howToUse} />
+              </>
+            )}
           </div>
 
           <label className="mt-4 flex items-center gap-3 text-sm font-bold text-[#6f5d54]">
@@ -1028,8 +1200,45 @@ export default function AdminPage({ onLogout, token, user }) {
       </section>
 
       <section className="px-[clamp(18px,5vw,72px)] pb-[clamp(54px,8vw,96px)]">
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-extrabold uppercase text-[#d7a17c]">Manage Products</p>
+            <h2 className="mt-1 font-serif text-3xl text-[#9b5f45]">
+              {activeProductCategory === "perfumes" ? "Perfumes" : "Cosmetics"}
+            </h2>
+          </div>
+          <div className="flex rounded-lg border border-[#ead8ce] bg-[#fff8f3] p-1">
+            <button
+              className={`min-h-10 cursor-pointer rounded-md px-4 text-sm font-extrabold transition ${
+                activeProductCategory === "perfumes"
+                  ? "bg-[#9b5f45] text-white shadow-sm"
+                  : "bg-transparent text-[#8f563e]"
+              }`}
+              type="button"
+              onClick={() => selectProductCategory("perfumes")}
+            >
+              Perfumes ({productCounts.perfumes || 0})
+            </button>
+            <button
+              className={`min-h-10 cursor-pointer rounded-md px-4 text-sm font-extrabold transition ${
+                activeProductCategory === "cosmetics"
+                  ? "bg-[#9b5f45] text-white shadow-sm"
+                  : "bg-transparent text-[#8f563e]"
+              }`}
+              type="button"
+              onClick={() => selectProductCategory("cosmetics")}
+            >
+              Cosmetics ({productCounts.cosmetics || 0})
+            </button>
+          </div>
+        </div>
         <div className="grid gap-3">
-          {products.map((product) => (
+          {visibleProducts.length === 0 && (
+            <p className="rounded-lg border border-[#ead8ce] bg-[#fff8f3] px-5 py-8 text-center font-bold text-[#6f5d54]">
+              No {activeProductCategory} have been added yet.
+            </p>
+          )}
+          {visibleProducts.map((product) => (
             <article
               className="grid gap-4 rounded-lg border border-[#ead8ce] bg-white p-4 shadow-[0_14px_34px_rgba(143,86,62,0.07)] md:grid-cols-[88px_minmax(0,1fr)_auto]"
               key={product.id}
@@ -1055,6 +1264,7 @@ export default function AdminPage({ onLogout, token, user }) {
                   type="button"
                   onClick={() => {
                     setEditingProductId(product.id);
+                    setActiveProductCategory(product.category);
                     setForm(formFromProduct(product));
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
@@ -1143,6 +1353,83 @@ export default function AdminPage({ onLogout, token, user }) {
 
           {renderOrderSection(activeOrderHeading.title, activeOrderHeading.subtitle, activeOrderOrders)}
         </section>
+      )}
+
+      {activeSection === "notifications" && (
+        <section className="px-[clamp(18px,5vw,72px)] py-[clamp(42px,7vw,82px)]">
+          <div className="mx-auto max-w-[980px] rounded-lg border border-[#ead8ce] bg-[#fffdfb] p-5 shadow-[0_18px_45px_rgba(143,86,62,0.08)]">
+            <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-xs font-extrabold uppercase text-[#d7a17c]">Admin Alerts</p>
+                <h2 className="font-serif text-4xl text-[#9b5f45]">All Notifications</h2>
+              </div>
+              <span className="rounded-full bg-[#fff8f3] px-4 py-2 text-sm font-extrabold text-[#8f563e]">
+                {notifications.length} total
+              </span>
+            </div>
+
+            <div className="grid gap-3">
+              {notifications.length === 0 ? (
+                <p className="rounded-md bg-white px-4 py-8 text-center font-bold text-[#6f5d54]">
+                  No notifications yet.
+                </p>
+              ) : (
+                notifications.map((notification) => (
+                  <article
+                    className="grid gap-4 rounded-lg border border-[#ead8ce] bg-white p-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center"
+                    key={notification.id}
+                  >
+                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#fff0e8] text-[#9b5f45]">
+                      <Bell aria-hidden="true" size={20} />
+                    </span>
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-extrabold text-[#271b16]">{notification.title}</h3>
+                        {!notification.isRead && (
+                          <span className="rounded-full bg-[#c04c4c] px-2 py-0.5 text-[0.65rem] font-extrabold uppercase text-white">New</span>
+                        )}
+                      </div>
+                      <p className="mt-1 text-sm leading-[1.6] text-[#6f5d54]">{notification.message}</p>
+                      <p className="mt-2 text-xs font-bold text-[#a08477]">{formatDateTime(notification.createdAt)}</p>
+                    </div>
+                    <button
+                      aria-label={`Delete ${notification.title}`}
+                      className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-md border border-[#f0cccc] bg-[#fff7f7] px-3 font-bold text-[#c04c4c]"
+                      type="button"
+                      onClick={() => removeNotification(notification.id)}
+                    >
+                      <Trash2 aria-hidden="true" size={17} />
+                      Delete
+                    </button>
+                  </article>
+                ))
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {popupNotification && (
+        <aside className="admin-notification-popup fixed top-5 right-5 z-50 w-[min(390px,calc(100vw-40px))] rounded-xl border border-[#ead8ce] bg-white p-5 shadow-[0_28px_70px_rgba(39,27,22,0.24)]" role="status">
+          <div className="flex items-start gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#fff0e8] text-[#9b5f45]">
+              <Bell aria-hidden="true" size={21} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-extrabold uppercase tracking-wide text-[#d7a17c]">New order notification</p>
+              <h2 className="mt-1 text-lg font-extrabold text-[#271b16]">{popupNotification.title}</h2>
+              <p className="mt-2 text-sm leading-[1.6] text-[#6f5d54]">{popupNotification.message}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button className="rounded-md bg-[#9b5f45] px-4 py-2 text-sm font-bold text-white" type="button" onClick={openNotifications}>
+                  View notifications
+                </button>
+                <button className="rounded-md border border-[#ead8ce] bg-white px-4 py-2 text-sm font-bold text-[#8f563e]" type="button" onClick={() => setPopupNotification(null)}>
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </aside>
       )}
     </main>
   );
