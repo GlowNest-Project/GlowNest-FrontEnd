@@ -1707,3 +1707,42 @@ html {
   height: 110px;
   border-radius: 28px;
 }
+
+/* OTP Modal Keyframe Animations */
+@keyframes otp-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}
+
+@keyframes otp-pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  60% { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(39, 174, 96, 0); }
+}
+
+@keyframes pulse-red {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); }
+}
+
+.animate-otp-shake {
+  animation: otp-shake 0.45s ease-in-out;
+}
+
+.animate-otp-pop {
+  animation: otp-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+.animate-pulse-green {
+  animation: pulse-green 1.4s infinite;
+}
+
+.animate-pulse-red {
+  animation: pulse-red 1.4s infinite;
+}

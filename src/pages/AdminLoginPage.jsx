@@ -12,7 +12,7 @@ const initialForm = {
   confirmPassword: "",
 };
 
-function AdminInput({ autoComplete, icon: Icon, name, onChange, placeholder, type = "text", value }) {
+function AdminInput({ autoComplete, icon: Icon, name, onChange, onCopy, onCut, onDrop, onPaste, placeholder, type = "text", value }) {
   return (
     <label className="block">
       <span className="login-slide-field flex min-h-12 items-center gap-3 px-4">
@@ -23,6 +23,10 @@ function AdminInput({ autoComplete, icon: Icon, name, onChange, placeholder, typ
           className="min-w-0 flex-1 bg-transparent text-sm font-bold text-[#37231b] outline-none placeholder:text-[#9a8074]"
           name={name}
           onChange={onChange}
+          onCopy={onCopy}
+          onCut={onCut}
+          onDrop={onDrop}
+          onPaste={onPaste}
           placeholder={placeholder}
           type={type}
           value={value}
@@ -50,6 +54,11 @@ export default function AdminLoginPage({ onAuthenticated }) {
     const { name, value } = event.target;
     setForm((currentForm) => ({ ...currentForm, [name]: value }));
     setError("");
+  }
+
+  function blockPasswordTransfer(event) {
+    event.preventDefault();
+    setError("Please type the confirmation password manually.");
   }
 
   async function submitForm(event) {
@@ -142,7 +151,7 @@ export default function AdminLoginPage({ onAuthenticated }) {
                 <AdminInput autoComplete="email" icon={Mail} name="email" onChange={updateField} placeholder="Admin email" type="email" value={form.email} />
                 <div>
                   <div className="relative">
-                    <AdminInput autoComplete="new-password" icon={LockKeyhole} name="password" onChange={updateField} placeholder="Password" type={showPassword ? "text" : "password"} value={form.password} />
+                    <AdminInput autoComplete="new-password" icon={LockKeyhole} name="password" onChange={updateField} onCopy={blockPasswordTransfer} onCut={blockPasswordTransfer} placeholder="Password" type={showPassword ? "text" : "password"} value={form.password} />
                     <button aria-label={showPassword ? "Hide password" : "Show password"} className="absolute right-4 top-3.5 cursor-pointer bg-transparent text-[#8f563e]" type="button" onClick={() => setShowPassword((current) => !current)}>
                       {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
                     </button>
@@ -150,7 +159,7 @@ export default function AdminLoginPage({ onAuthenticated }) {
                   <PasswordStrength password={form.password} />
                 </div>
                 <div className="relative">
-                  <AdminInput autoComplete="new-password" icon={LockKeyhole} name="confirmPassword" onChange={updateField} placeholder="Confirm password" type={showConfirmPassword ? "text" : "password"} value={form.confirmPassword} />
+                  <AdminInput autoComplete="new-password" icon={LockKeyhole} name="confirmPassword" onChange={updateField} onDrop={blockPasswordTransfer} onPaste={blockPasswordTransfer} placeholder="Confirm password" type={showConfirmPassword ? "text" : "password"} value={form.confirmPassword} />
                   <button aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"} className="absolute right-4 top-3.5 cursor-pointer bg-transparent text-[#8f563e]" type="button" onClick={() => setShowConfirmPassword((current) => !current)}>
                     {showConfirmPassword ? <Eye size={18} /> : <EyeOff size={18} />}
                   </button>

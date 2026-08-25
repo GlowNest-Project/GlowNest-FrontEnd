@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  AlertTriangle,
   BadgePercent,
   Bell,
+  Check,
   CheckCircle2,
   LogOut,
   ReceiptText,
@@ -443,7 +445,7 @@ export default function Header({ cartCount, onCartClick, onLogout, page, token, 
               </div>
             )}
             <button
-              className={`inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-md border border-[#ead8ce] bg-white px-3 font-bold shadow-[0_6px_16px_rgba(143,86,62,0.08)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#fff8f3] sm:px-3.5 ${
+              className={`relative inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-md border border-[#ead8ce] bg-white px-3 font-bold shadow-[0_6px_16px_rgba(143,86,62,0.08)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#fff8f3] sm:px-3.5 ${
                 page === "account" ? "text-[#9b5f45]" : "text-[#6f5d54]"
               }`}
               type="button"
@@ -451,6 +453,21 @@ export default function Header({ cartCount, onCartClick, onLogout, page, token, 
             >
               <UserRound aria-hidden="true" size={18} strokeWidth={2.4} />
               <span className="hidden sm:inline">My Account</span>
+              {user?.isVerified ? (
+                <span
+                  className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-[#27ae60] text-white shadow-[0_0_8px_rgba(39,174,96,0.5)]"
+                  title="Verified Account"
+                >
+                  <Check size={11} strokeWidth={3.5} />
+                </span>
+              ) : (
+                <span
+                  className="flex h-4.5 w-4.5 shrink-0 items-center justify-center text-[#e67e22]"
+                  title="Pending Verification"
+                >
+                  <AlertTriangle size={15} strokeWidth={2.4} />
+                </span>
+              )}
             </button>
             <button
               className={`relative inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-md border border-[#ead8ce] bg-white px-3 font-bold shadow-[0_6px_16px_rgba(143,86,62,0.08)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#fff8f3] sm:px-3.5 ${

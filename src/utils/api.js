@@ -101,6 +101,26 @@ export function updateCurrentUser(payload, token) {
   return apiFetch("/api/auth/me", { method: "PUT", body: payload, token }).then((data) => data.user);
 }
 
+export function requestEmailVerificationOtp(token) {
+  return apiFetch("/api/auth/verify-email/request-otp", { method: "POST", token });
+}
+
+export function confirmEmailVerificationOtp(payload, token) {
+  return apiFetch("/api/auth/verify-email/confirm", { method: "POST", body: payload, token });
+}
+
+export function requestPhoneVerificationOtp(token) {
+  return apiFetch("/api/auth/verify-phone/request-otp", { method: "POST", token });
+}
+
+export function confirmPhoneVerificationOtp(payload, token) {
+  return apiFetch("/api/auth/verify-phone/confirm", { method: "POST", body: payload, token });
+}
+
+export function changePassword(payload, token) {
+  return apiFetch("/api/auth/change-password", { method: "POST", body: payload, token });
+}
+
 export function createOrder(payload, token) {
   return apiFetch("/api/orders", { method: "POST", body: payload, token }).then((data) => data.order);
 }

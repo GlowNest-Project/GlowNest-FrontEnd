@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Eye, EyeOff, LockKeyhole, Mail, Phone, ShieldCheck, UserRound } from "lucide-react";
+import { Eye, EyeOff, LockKeyhole, Mail, Phone, UserRound } from "lucide-react";
 import PasswordStrength from "../components/PasswordStrength";
-import { login, requestSignupOtp, verifySignupOtp } from "../utils/api";
+import { login, signup } from "../utils/api";
 
 const initialForm = {
   name: "",
@@ -9,8 +9,6 @@ const initialForm = {
   email: "",
   password: "",
   confirmPassword: "",
-  emailOtp: "",
-  phoneOtp: "",
 };
 
 function validateForm(form, mode) {
@@ -39,15 +37,13 @@ function validateForm(form, mode) {
   return errors;
 }
 
-function LoginInput({ autoComplete, disabled = false, error, icon: Icon, name, onChange, placeholder, type = "text", value }) {
+function LoginInput({ autoComplete, disabled = false, error, icon: Icon, name, onChange, onCopy, onCut, onDrop, onPaste, placeholder, type = "text", value }) {
   const autoCompleteByField = {
     confirmPassword: "new-password",
     email: "email",
-    emailOtp: "one-time-code",
     name: "name",
     password: "current-password",
     phone: "tel",
-    phoneOtp: "one-time-code",
   };
 
   return (
@@ -61,6 +57,10 @@ function LoginInput({ autoComplete, disabled = false, error, icon: Icon, name, o
           className="min-w-0 flex-1 bg-transparent text-sm font-bold text-[#37231b] outline-none placeholder:text-[#9a8074]"
           name={name}
           onChange={onChange}
+          onCopy={onCopy}
+          onCut={onCut}
+          onDrop={onDrop}
+          onPaste={onPaste}
           placeholder={placeholder}
           type={type}
           value={value}
@@ -80,7 +80,6 @@ export default function LoginPage({ onAuthenticated }) {
   const [errors, setErrors] = useState({});
   const [submittedMessage, setSubmittedMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [signupVerification, setSignupVerification] = useState(null);
 
   const isSignup = mode === "signup";
   const passwordType = showPassword ? "text" : "password";
@@ -92,11 +91,18 @@ export default function LoginPage({ onAuthenticated }) {
         : "mismatch"
       : "";
 
+  function blockPasswordTransfer(event) {
+    event.preventDefault();
+    setErrors((currentErrors) => ({
+      ...currentErrors,
+      confirmPassword: "Please type the confirmation password manually.",
+    }));
+  }
+
   function switchMode(nextMode) {
     setMode(nextMode);
     setErrors({});
     setSubmittedMessage("");
-    setSignupVerification(null);
   }
 
   function updateField(event) {
@@ -115,47 +121,16 @@ export default function LoginPage({ onAuthenticated }) {
       return;
     }
 
-    if (isSignup && signupVerification) {
-      const otpErrors = {};
-
-      if (!/^\d{6}$/.test(form.emailOtp.trim())) {
-        otpErrors.emailOtp = "Enter the 6-digit email OTP.";
-      }
-
-      if (!/^\d{6}$/.test(form.phoneOtp.trim())) {
-        otpErrors.phoneOtp = "Enter the 6-digit phone OTP.";
-      }
-
-      if (Object.keys(otpErrors).length > 0) {
-        setErrors(otpErrors);
-        return;
-      }
-    }
-
     setIsSubmitting(true);
     setSubmittedMessage("");
 
     try {
-      if (isSignup && !signupVerification) {
-        const result = await requestSignupOtp({
-          name: form.name.trim(),
-          phone: form.phone.trim(),
-          email: form.email.trim(),
-          password: form.password,
-        });
-
-        setSignupVerification(result);
-        setSubmittedMessage(
-          `OTP sent to your email and phone. It expires in ${result.expiresInMinutes || 10} minutes.`
-        );
-        return;
-      }
-
       const result = isSignup
-        ? await verifySignupOtp({
-            verificationId: signupVerification.verificationId,
-            emailOtp: form.emailOtp.trim(),
-            phoneOtp: form.phoneOtp.trim(),
+        ? await signup({
+            name: form.name.trim(),
+            phone: form.phone.trim(),
+            email: form.email.trim(),
+            password: form.password,
           })
         : await login({ email: form.email.trim(), password: form.password });
 
@@ -165,95 +140,6 @@ export default function LoginPage({ onAuthenticated }) {
     } finally {
       setIsSubmitting(false);
     }
-  }
-
-  if (isSignup && signupVerification) {
-    return (
-      <main className="login-page min-h-screen px-[clamp(16px,5vw,72px)] py-[clamp(42px,7vw,82px)]">
-        <section className="mx-auto max-w-[760px]">
-          <div className="mb-8 text-center">
-            <p className="collection-kicker">GlowNest Verification</p>
-            <h1 className="m-0 mt-4 font-serif text-[clamp(2.7rem,7vw,5rem)] leading-[0.95] text-[#9b5f45]">
-              Verify email & phone
-            </h1>
-            <p className="mx-auto mt-5 max-w-[580px] text-base font-semibold leading-[1.75] text-[#6f5d54]">
-              Enter the OTP codes sent to {form.email} and {form.phone}. This keeps your GlowNest
-              account secure before checkout.
-            </p>
-          </div>
-
-          <form
-            className="rounded-lg border border-[#ead8ce] bg-white p-[clamp(20px,5vw,42px)] shadow-[0_18px_45px_rgba(143,86,62,0.09)]"
-            onSubmit={submitForm}
-          >
-            <div className="mb-6 flex items-center justify-center gap-3 text-center">
-              <ShieldCheck aria-hidden="true" className="text-[#b67858]" size={28} strokeWidth={2.2} />
-              <p className="m-0 text-lg font-black uppercase tracking-[0.14em] text-[#d7a17c]">
-                Verify email and phone
-              </p>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <LoginInput
-                error={errors.emailOtp}
-                icon={Mail}
-                name="emailOtp"
-                onChange={updateField}
-                placeholder="Email OTP"
-                value={form.emailOtp}
-              />
-              <LoginInput
-                error={errors.phoneOtp}
-                icon={Phone}
-                name="phoneOtp"
-                onChange={updateField}
-                placeholder="Phone OTP"
-                value={form.phoneOtp}
-              />
-            </div>
-
-            {signupVerification.devOtp && (
-              <p className="mt-5 rounded-md bg-[#fff8f3] px-4 py-3 text-sm font-bold leading-[1.7] text-[#8f563e]">
-                Test OTPs: Email {signupVerification.devOtp.email} / Phone {signupVerification.devOtp.phone}
-              </p>
-            )}
-
-            {errors.submit && (
-              <p className="mt-5 rounded-full bg-[#fdecec] px-4 py-2 text-center text-sm font-bold text-[#c04c4c]">
-                {errors.submit}
-              </p>
-            )}
-            {submittedMessage && (
-              <p className="mt-5 rounded-full bg-[#edf9f2] px-4 py-2 text-center text-sm font-bold text-[#2f8f5d]">
-                {submittedMessage}
-              </p>
-            )}
-
-            <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <button
-                className="login-slide-submit min-h-12 w-full cursor-pointer rounded-full px-9 font-black text-white disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-                disabled={isSubmitting}
-                type="submit"
-              >
-                {isSubmitting ? "Verifying OTP..." : "Verify and Create Account"}
-              </button>
-              <button
-                className="min-h-12 w-full cursor-pointer rounded-full border border-[#e7cbbd] bg-white px-9 font-black text-[#8f563e] transition hover:bg-[#fff8f3] sm:w-auto"
-                type="button"
-                onClick={() => {
-                  setSignupVerification(null);
-                  setForm((currentForm) => ({ ...currentForm, emailOtp: "", phoneOtp: "" }));
-                  setErrors({});
-                  setSubmittedMessage("");
-                }}
-              >
-                Edit details
-              </button>
-            </div>
-          </form>
-        </section>
-      </main>
-    );
   }
 
   return (
@@ -337,7 +223,6 @@ export default function LoginPage({ onAuthenticated }) {
                   onChange={updateField}
                   placeholder="Full name"
                   value={form.name}
-                  disabled={Boolean(signupVerification)}
                 />
                 <LoginInput
                   error={isSignup ? errors.phone : ""}
@@ -346,7 +231,6 @@ export default function LoginPage({ onAuthenticated }) {
                   onChange={updateField}
                   placeholder="Phone number"
                   value={form.phone}
-                  disabled={Boolean(signupVerification)}
                 />
                 <LoginInput
                   error={isSignup ? errors.email : ""}
@@ -356,7 +240,6 @@ export default function LoginPage({ onAuthenticated }) {
                   placeholder="Email address"
                   type="email"
                   value={form.email}
-                  disabled={Boolean(signupVerification)}
                 />
                 <div>
                   <div className="relative">
@@ -366,10 +249,11 @@ export default function LoginPage({ onAuthenticated }) {
                       icon={LockKeyhole}
                       name="password"
                       onChange={updateField}
+                      onCopy={blockPasswordTransfer}
+                      onCut={blockPasswordTransfer}
                       placeholder="Password"
                       type={passwordType}
                       value={form.password}
-                      disabled={Boolean(signupVerification)}
                     />
                     <button
                       className="absolute right-4 top-3.5 cursor-pointer bg-transparent text-[#8f563e]"
@@ -388,10 +272,11 @@ export default function LoginPage({ onAuthenticated }) {
                     icon={LockKeyhole}
                     name="confirmPassword"
                     onChange={updateField}
+                    onDrop={blockPasswordTransfer}
+                    onPaste={blockPasswordTransfer}
                     placeholder="Confirm password"
                     type={confirmPasswordType}
                     value={form.confirmPassword}
-                    disabled={Boolean(signupVerification)}
                   />
                   <button
                     className="absolute right-4 top-3.5 cursor-pointer bg-transparent text-[#8f563e]"
@@ -429,9 +314,13 @@ export default function LoginPage({ onAuthenticated }) {
                 disabled={isSubmitting}
                 type="submit"
               >
-                {isSubmitting && isSignup
-                  ? "Sending OTP..."
-                  : "Register"}
+                {isSubmitting
+                  ? isSignup
+                    ? "Creating Account..."
+                    : "Signing in..."
+                  : isSignup
+                    ? "Create Account"
+                    : "Sign In"}
               </button>
             </form>
           </div>
